@@ -1,712 +1,158 @@
-{
- "cells": [
-  {
-   "cell_type": "code",
-   "execution_count": 1,
-   "id": "312158a2-e976-4dba-b73a-b0332622ccdc",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from torchvision.datasets import CIFAR10\n",
-    "from torch.utils.data import DataLoader\n",
-    "from torchvision import transforms\n",
-    "\n",
-    "\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 3,
-   "id": "08e08627-4b7e-4b8c-b17f-19fe90396b84",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "import torch\n",
-    "import torch.nn as nn\n",
-    "class simpleNN(nn.Module):\n",
-    "    def __init__(self, num_class = 10): #dinh nghia cac layer can dung\n",
-    "        super().__init__()\n",
-    "        self.flatten = nn.Flatten()\n",
-    "        self.fc1 = nn.Sequential(\n",
-    "            nn.Linear(in_features=3*32*32, out_features= 256),\n",
-    "            nn.ReLU()\n",
-    "        )\n",
-    "\n",
-    "        self.fc2 = nn.Sequential(\n",
-    "            nn.Linear(in_features=256, out_features= 512),\n",
-    "            nn.ReLU()\n",
-    "        )\n",
-    "        self.fc3 = nn.Sequential(\n",
-    "            nn.Linear(in_features=512, out_features= 1024),\n",
-    "            nn.ReLU()\n",
-    "        )\n",
-    "        self.fc4 = nn.Sequential(\n",
-    "            nn.Linear(in_features=1024, out_features= 512),\n",
-    "            nn.ReLU()\n",
-    "        )\n",
-    "        self.fc5= nn.Sequential(\n",
-    "            nn.Linear(in_features=512, out_features = num_class),\n",
-    "            nn.ReLU()\n",
-    "        )\n",
-    "\n",
-    "    def forward(self, x): #cach thuc du lieu di qua nhu nao\n",
-    "        x = self.flatten(x)\n",
-    "        x = self.fc1(x)\n",
-    "        x = self.fc2(x)\n",
-    "        x = self.fc3(x)\n",
-    "        x = self.fc4(x)\n",
-    "        x = self.fc5(x)\n",
-    "        return x"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 111,
-   "id": "f1dec22c-5dae-4f69-bcc3-8b8bf97878d0",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "class CNN(nn.Module):\n",
-    "    def __init__(self, num_class = 10): #dinh nghia cac layer can dung\n",
-    "        super().__init__()\n",
-    "        self.conv1 = self.make_block(in_channels = 3, out_channels = 8)\n",
-    "        self.conv2 = self.make_block(in_channels = 8, out_channels = 16)\n",
-    "        self.conv3 = self.make_block(in_channels = 16, out_channels = 32)\n",
-    "        self.conv4 = self.make_block(in_channels = 32, out_channels = 64)\n",
-    "        self.conv5 = self.make_block(in_channels = 64, out_channels = 128)\n",
-    "        #self.flatten = nn.Flatten()\n",
-    "\n",
-    "        self.fc1 = nn.Sequential(\n",
-    "            nn.Dropout(p=0.5),\n",
-    "            nn.Linear(in_features=6272, out_features= 512),\n",
-    "            nn.LeakyReLU()\n",
-    "        )\n",
-    "\n",
-    "        self.fc2 = nn.Sequential(\n",
-    "            nn.Dropout(p=0.5),\n",
-    "            nn.Linear(in_features=512, out_features= 1024),\n",
-    "            nn.LeakyReLU()\n",
-    "        )\n",
-    "\n",
-    "        self.fc3 = nn.Sequential(\n",
-    "            nn.Dropout(p=0.5),\n",
-    "            nn.Linear(in_features=1024, out_features= num_class),\n",
-    "        )\n",
-    "\n",
-    "    def make_block(self, in_channels, out_channels):\n",
-    "        return nn.Sequential(\n",
-    "            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride= 1, padding='same'),\n",
-    "            nn.BatchNorm2d(num_features=out_channels),\n",
-    "            nn.LeakyReLU(),\n",
-    "            nn.Conv2d(in_channels=out_channels,out_channels=out_channels,kernel_size=3, padding ='same'),\n",
-    "            nn.BatchNorm2d(num_features=out_channels),\n",
-    "            nn.LeakyReLU(),\n",
-    "            nn.MaxPool2d(kernel_size=2)\n",
-    "        )\n",
-    "\n",
-    "    def forward(self, x): #cach thuc du lieu di qua nhu nao\n",
-    "            x = self.conv1(x)\n",
-    "            x = self.conv2(x)\n",
-    "            x = self.conv3(x)\n",
-    "            x = self.conv4(x)\n",
-    "            x = self.conv5(x)     \n",
-    "            x = x.view(x.shape[0], -1) #flatten\n",
-    "            x = self.fc1(x)\n",
-    "            x = self.fc2(x)\n",
-    "            x = self.fc3(x)\n",
-    "            return x\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 9,
-   "id": "8a8e26db-2f24-44fb-8cb2-1352400c1d2f",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "transform = transforms.Compose([\n",
-    "    transforms.ToTensor(),  # chuyển ảnh từ PIL sang tensor   \n",
-    "])"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 11,
-   "id": "f0b71af1-228e-4200-aa6d-49bdcd18117c",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "train_dataset = CIFAR10(root = './', train = True, transform = transform)\n",
-    "train_dataloader = DataLoader(\n",
-    "    dataset = train_dataset,\n",
-    "    batch_size = 16,\n",
-    "    num_workers = 3,\n",
-    "    shuffle = True,\n",
-    "    drop_last = True,\n",
-    ")"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 23,
-   "id": "1ef34514-de22-423d-9015-a65898536960",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "test_dataset = CIFAR10(root = './', train = False,transform = transform)\n",
-    "test_dataloader = DataLoader(\n",
-    "    dataset = test_dataset,\n",
-    "    batch_size = 16,\n",
-    "    num_workers = 3,\n",
-    "    shuffle = False,\n",
-    "    drop_last = True,\n",
-    ")"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 109,
-   "id": "ff4ba3ee-58c4-41f4-9904-402e2fe9758a",
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "torch.Size([8, 10])"
-      ]
-     },
-     "execution_count": 109,
-     "metadata": {},
-     "output_type": "execute_result"
-    }
-   ],
-   "source": [
-    "model = CNN()\n",
-    "input_data = torch.rand(8,3,224,224)\n",
-    "result = model(input_data)\n",
-    "result.shape"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 7,
-   "id": "c582c3cb-4996-443d-a588-783a4dc7a799",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "criterion = nn.CrossEntropyLoss() #dinh nghia ham loss\n",
-    "optimizer = torch.optim.SGD(model.parameters(), lr = 0.001, momentum=0.9)"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 31,
-   "id": "52f829b6-9b0a-4d9e-8c85-840064dac173",
-   "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "Epoch 1/100. Iteration 1/3125. Loss 0.7184560298919678\n",
-      "Epoch 1/100. Iteration 2/3125. Loss 0.933940589427948\n",
-      "Epoch 1/100. Iteration 3/3125. Loss 1.041289210319519\n",
-      "Epoch 1/100. Iteration 4/3125. Loss 1.2460967302322388\n",
-      "Epoch 1/100. Iteration 5/3125. Loss 1.396956205368042\n",
-      "Epoch 1/100. Iteration 6/3125. Loss 1.033910870552063\n",
-      "Epoch 1/100. Iteration 7/3125. Loss 0.7366065979003906\n",
-      "Epoch 1/100. Iteration 8/3125. Loss 0.4697414040565491\n",
-      "Epoch 1/100. Iteration 9/3125. Loss 1.1240625381469727\n",
-      "Epoch 1/100. Iteration 10/3125. Loss 1.256973147392273\n",
-      "Epoch 1/100. Iteration 11/3125. Loss 1.2882909774780273\n",
-      "Epoch 1/100. Iteration 12/3125. Loss 0.9616247415542603\n",
-      "Epoch 1/100. Iteration 13/3125. Loss 0.826131284236908\n",
-      "Epoch 1/100. Iteration 14/3125. Loss 0.9480450749397278\n",
-      "Epoch 1/100. Iteration 15/3125. Loss 0.9223163723945618\n",
-      "Epoch 1/100. Iteration 16/3125. Loss 1.2037714719772339\n",
-      "Epoch 1/100. Iteration 17/3125. Loss 1.4030954837799072\n",
-      "Epoch 1/100. Iteration 18/3125. Loss 0.8247874975204468\n",
-      "Epoch 1/100. Iteration 19/3125. Loss 1.094921350479126\n",
-      "Epoch 1/100. Iteration 20/3125. Loss 1.274112582206726\n",
-      "Epoch 1/100. Iteration 21/3125. Loss 1.0841398239135742\n",
-      "Epoch 1/100. Iteration 22/3125. Loss 1.0971757173538208\n",
-      "Epoch 1/100. Iteration 23/3125. Loss 0.8937242031097412\n",
-      "Epoch 1/100. Iteration 24/3125. Loss 1.23430335521698\n",
-      "Epoch 1/100. Iteration 25/3125. Loss 1.5453596115112305\n",
-      "Epoch 1/100. Iteration 26/3125. Loss 1.01242995262146\n",
-      "Epoch 1/100. Iteration 27/3125. Loss 1.3748900890350342\n",
-      "Epoch 1/100. Iteration 28/3125. Loss 1.2243311405181885\n",
-      "Epoch 1/100. Iteration 29/3125. Loss 1.7213225364685059\n",
-      "Epoch 1/100. Iteration 30/3125. Loss 1.4816902875900269\n",
-      "Epoch 1/100. Iteration 31/3125. Loss 1.861446738243103\n",
-      "Epoch 1/100. Iteration 32/3125. Loss 1.387405514717102\n",
-      "Epoch 1/100. Iteration 33/3125. Loss 1.0568797588348389\n",
-      "Epoch 1/100. Iteration 34/3125. Loss 0.9384528994560242\n",
-      "Epoch 1/100. Iteration 35/3125. Loss 1.2113938331604004\n",
-      "Epoch 1/100. Iteration 36/3125. Loss 0.9639225006103516\n",
-      "Epoch 1/100. Iteration 37/3125. Loss 1.2084485292434692\n",
-      "Epoch 1/100. Iteration 38/3125. Loss 0.8980287313461304\n",
-      "Epoch 1/100. Iteration 39/3125. Loss 0.9422687292098999\n",
-      "Epoch 1/100. Iteration 40/3125. Loss 1.274375557899475\n",
-      "Epoch 1/100. Iteration 41/3125. Loss 1.4238206148147583\n",
-      "Epoch 1/100. Iteration 42/3125. Loss 1.2652552127838135\n",
-      "Epoch 1/100. Iteration 43/3125. Loss 1.3902320861816406\n",
-      "Epoch 1/100. Iteration 44/3125. Loss 0.8210466504096985\n",
-      "Epoch 1/100. Iteration 45/3125. Loss 0.9875668883323669\n",
-      "Epoch 1/100. Iteration 46/3125. Loss 1.3004510402679443\n",
-      "Epoch 1/100. Iteration 47/3125. Loss 0.8715532422065735\n",
-      "Epoch 1/100. Iteration 48/3125. Loss 0.6555413603782654\n",
-      "Epoch 1/100. Iteration 49/3125. Loss 1.2023217678070068\n",
-      "Epoch 1/100. Iteration 50/3125. Loss 1.0452008247375488\n",
-      "Epoch 1/100. Iteration 51/3125. Loss 0.9591911435127258\n",
-      "Epoch 1/100. Iteration 52/3125. Loss 1.4196157455444336\n",
-      "Epoch 1/100. Iteration 53/3125. Loss 1.11534583568573\n",
-      "Epoch 1/100. Iteration 54/3125. Loss 1.3048627376556396\n",
-      "Epoch 1/100. Iteration 55/3125. Loss 1.285778284072876\n",
-      "Epoch 1/100. Iteration 56/3125. Loss 1.0764498710632324\n",
-      "Epoch 1/100. Iteration 57/3125. Loss 1.1075639724731445\n",
-      "Epoch 1/100. Iteration 58/3125. Loss 1.7355499267578125\n",
-      "Epoch 1/100. Iteration 59/3125. Loss 0.9453999400138855\n",
-      "Epoch 1/100. Iteration 60/3125. Loss 1.3841569423675537\n",
-      "Epoch 1/100. Iteration 61/3125. Loss 1.3485311269760132\n",
-      "Epoch 1/100. Iteration 62/3125. Loss 0.7081683278083801\n",
-      "Epoch 1/100. Iteration 63/3125. Loss 0.807883620262146\n",
-      "Epoch 1/100. Iteration 64/3125. Loss 0.8680815100669861\n",
-      "Epoch 1/100. Iteration 65/3125. Loss 0.7316450476646423\n",
-      "Epoch 1/100. Iteration 66/3125. Loss 1.0766322612762451\n",
-      "Epoch 1/100. Iteration 67/3125. Loss 1.5373332500457764\n",
-      "Epoch 1/100. Iteration 68/3125. Loss 1.1896309852600098\n",
-      "Epoch 1/100. Iteration 69/3125. Loss 0.7281138896942139\n",
-      "Epoch 1/100. Iteration 70/3125. Loss 1.52505624294281\n",
-      "Epoch 1/100. Iteration 71/3125. Loss 1.275864839553833\n",
-      "Epoch 1/100. Iteration 72/3125. Loss 1.2347172498703003\n",
-      "Epoch 1/100. Iteration 73/3125. Loss 1.1654245853424072\n",
-      "Epoch 1/100. Iteration 74/3125. Loss 0.9947554469108582\n",
-      "Epoch 1/100. Iteration 75/3125. Loss 1.0027148723602295\n",
-      "Epoch 1/100. Iteration 76/3125. Loss 1.4938966035842896\n",
-      "Epoch 1/100. Iteration 77/3125. Loss 0.9364004731178284\n",
-      "Epoch 1/100. Iteration 78/3125. Loss 1.2278293371200562\n",
-      "Epoch 1/100. Iteration 79/3125. Loss 0.6330123543739319\n",
-      "Epoch 1/100. Iteration 80/3125. Loss 1.0057779550552368\n",
-      "Epoch 1/100. Iteration 81/3125. Loss 0.9839843511581421\n",
-      "Epoch 1/100. Iteration 82/3125. Loss 1.2546497583389282\n",
-      "Epoch 1/100. Iteration 83/3125. Loss 0.9293344616889954\n",
-      "Epoch 1/100. Iteration 84/3125. Loss 1.3931000232696533\n",
-      "Epoch 1/100. Iteration 85/3125. Loss 1.279799461364746\n",
-      "Epoch 1/100. Iteration 86/3125. Loss 1.1661447286605835\n",
-      "Epoch 1/100. Iteration 87/3125. Loss 1.1896655559539795\n",
-      "Epoch 1/100. Iteration 88/3125. Loss 0.9384813904762268\n",
-      "Epoch 1/100. Iteration 89/3125. Loss 1.2340303659439087\n",
-      "Epoch 1/100. Iteration 90/3125. Loss 1.41779625415802\n",
-      "Epoch 1/100. Iteration 91/3125. Loss 1.1186577081680298\n",
-      "Epoch 1/100. Iteration 92/3125. Loss 1.3829518556594849\n",
-      "Epoch 1/100. Iteration 93/3125. Loss 1.7338030338287354\n",
-      "Epoch 1/100. Iteration 94/3125. Loss 1.1669151782989502\n",
-      "Epoch 1/100. Iteration 95/3125. Loss 1.1223156452178955\n",
-      "Epoch 1/100. Iteration 96/3125. Loss 1.0791908502578735\n",
-      "Epoch 1/100. Iteration 97/3125. Loss 0.8731189370155334\n",
-      "Epoch 1/100. Iteration 98/3125. Loss 0.9610177278518677\n",
-      "Epoch 1/100. Iteration 99/3125. Loss 1.4895938634872437\n",
-      "Epoch 1/100. Iteration 100/3125. Loss 1.3193073272705078\n",
-      "Epoch 1/100. Iteration 101/3125. Loss 1.0949666500091553\n",
-      "Epoch 1/100. Iteration 102/3125. Loss 1.0774840116500854\n",
-      "Epoch 1/100. Iteration 103/3125. Loss 0.7194697856903076\n",
-      "Epoch 1/100. Iteration 104/3125. Loss 0.9473074078559875\n",
-      "Epoch 1/100. Iteration 105/3125. Loss 1.2011680603027344\n",
-      "Epoch 1/100. Iteration 106/3125. Loss 1.491150140762329\n",
-      "Epoch 1/100. Iteration 107/3125. Loss 1.3191502094268799\n",
-      "Epoch 1/100. Iteration 108/3125. Loss 1.5672907829284668\n",
-      "Epoch 1/100. Iteration 109/3125. Loss 1.0267823934555054\n",
-      "Epoch 1/100. Iteration 110/3125. Loss 1.1220251321792603\n",
-      "Epoch 1/100. Iteration 111/3125. Loss 1.3841603994369507\n",
-      "Epoch 1/100. Iteration 112/3125. Loss 1.2593132257461548\n",
-      "Epoch 1/100. Iteration 113/3125. Loss 1.3346447944641113\n",
-      "Epoch 1/100. Iteration 114/3125. Loss 0.8545576930046082\n",
-      "Epoch 1/100. Iteration 115/3125. Loss 1.1340622901916504\n",
-      "Epoch 1/100. Iteration 116/3125. Loss 0.7145015597343445\n",
-      "Epoch 1/100. Iteration 117/3125. Loss 1.0506114959716797\n",
-      "Epoch 1/100. Iteration 118/3125. Loss 1.512354850769043\n",
-      "Epoch 1/100. Iteration 119/3125. Loss 1.5034831762313843\n",
-      "Epoch 1/100. Iteration 120/3125. Loss 0.9086197018623352\n",
-      "Epoch 1/100. Iteration 121/3125. Loss 1.3140058517456055\n",
-      "Epoch 1/100. Iteration 122/3125. Loss 0.7626340389251709\n",
-      "Epoch 1/100. Iteration 123/3125. Loss 1.2420140504837036\n",
-      "Epoch 1/100. Iteration 124/3125. Loss 1.1233659982681274\n",
-      "Epoch 1/100. Iteration 125/3125. Loss 1.372073769569397\n",
-      "Epoch 1/100. Iteration 126/3125. Loss 1.3160210847854614\n",
-      "Epoch 1/100. Iteration 127/3125. Loss 0.8077833652496338\n",
-      "Epoch 1/100. Iteration 128/3125. Loss 0.6811304092407227\n",
-      "Epoch 1/100. Iteration 129/3125. Loss 1.4900398254394531\n",
-      "Epoch 1/100. Iteration 130/3125. Loss 0.7681093811988831\n",
-      "Epoch 1/100. Iteration 131/3125. Loss 1.5278648138046265\n",
-      "Epoch 1/100. Iteration 132/3125. Loss 0.8070913553237915\n",
-      "Epoch 1/100. Iteration 133/3125. Loss 1.202779769897461\n",
-      "Epoch 1/100. Iteration 134/3125. Loss 1.7926632165908813\n",
-      "Epoch 1/100. Iteration 135/3125. Loss 1.144513487815857\n",
-      "Epoch 1/100. Iteration 136/3125. Loss 1.5734180212020874\n",
-      "Epoch 1/100. Iteration 137/3125. Loss 0.8843162655830383\n",
-      "Epoch 1/100. Iteration 138/3125. Loss 0.7891144752502441\n",
-      "Epoch 1/100. Iteration 139/3125. Loss 0.8950497508049011\n",
-      "Epoch 1/100. Iteration 140/3125. Loss 0.6366986036300659\n",
-      "Epoch 1/100. Iteration 141/3125. Loss 1.1035760641098022\n",
-      "Epoch 1/100. Iteration 142/3125. Loss 1.4707088470458984\n",
-      "Epoch 1/100. Iteration 143/3125. Loss 0.7335414886474609\n",
-      "Epoch 1/100. Iteration 144/3125. Loss 1.4397474527359009\n",
-      "Epoch 1/100. Iteration 145/3125. Loss 0.8962797522544861\n",
-      "Epoch 1/100. Iteration 146/3125. Loss 1.57469642162323\n",
-      "Epoch 1/100. Iteration 147/3125. Loss 1.0513190031051636\n",
-      "Epoch 1/100. Iteration 148/3125. Loss 1.3012402057647705\n",
-      "Epoch 1/100. Iteration 149/3125. Loss 1.3423490524291992\n",
-      "Epoch 1/100. Iteration 150/3125. Loss 1.011712908744812\n",
-      "Epoch 1/100. Iteration 151/3125. Loss 1.0710519552230835\n",
-      "Epoch 1/100. Iteration 152/3125. Loss 1.3817230463027954\n",
-      "Epoch 1/100. Iteration 153/3125. Loss 1.4268978834152222\n",
-      "Epoch 1/100. Iteration 154/3125. Loss 1.404487133026123\n",
-      "Epoch 1/100. Iteration 155/3125. Loss 0.7617260217666626\n",
-      "Epoch 1/100. Iteration 156/3125. Loss 0.7277165055274963\n",
-      "Epoch 1/100. Iteration 157/3125. Loss 1.2504329681396484\n",
-      "Epoch 1/100. Iteration 158/3125. Loss 1.2459954023361206\n",
-      "Epoch 1/100. Iteration 159/3125. Loss 1.3743869066238403\n",
-      "Epoch 1/100. Iteration 160/3125. Loss 1.5626022815704346\n",
-      "Epoch 1/100. Iteration 161/3125. Loss 1.350595474243164\n",
-      "Epoch 1/100. Iteration 162/3125. Loss 1.476956844329834\n",
-      "Epoch 1/100. Iteration 163/3125. Loss 1.1495954990386963\n",
-      "Epoch 1/100. Iteration 164/3125. Loss 1.5016090869903564\n",
-      "Epoch 1/100. Iteration 165/3125. Loss 1.056641697883606\n",
-      "Epoch 1/100. Iteration 166/3125. Loss 0.7852635383605957\n",
-      "Epoch 1/100. Iteration 167/3125. Loss 1.406996488571167\n",
-      "Epoch 1/100. Iteration 168/3125. Loss 1.4788702726364136\n",
-      "Epoch 1/100. Iteration 169/3125. Loss 1.4832642078399658\n",
-      "Epoch 1/100. Iteration 170/3125. Loss 1.7427685260772705\n",
-      "Epoch 1/100. Iteration 171/3125. Loss 1.4827381372451782\n",
-      "Epoch 1/100. Iteration 172/3125. Loss 1.4169626235961914\n",
-      "Epoch 1/100. Iteration 173/3125. Loss 1.0756957530975342\n",
-      "Epoch 1/100. Iteration 174/3125. Loss 1.659174919128418\n",
-      "Epoch 1/100. Iteration 175/3125. Loss 1.341434121131897\n",
-      "Epoch 1/100. Iteration 176/3125. Loss 1.0987972021102905\n",
-      "Epoch 1/100. Iteration 177/3125. Loss 1.6163113117218018\n",
-      "Epoch 1/100. Iteration 178/3125. Loss 0.9701999425888062\n",
-      "Epoch 1/100. Iteration 179/3125. Loss 1.1508021354675293\n",
-      "Epoch 1/100. Iteration 180/3125. Loss 1.0548959970474243\n",
-      "Epoch 1/100. Iteration 181/3125. Loss 0.818860650062561\n",
-      "Epoch 1/100. Iteration 182/3125. Loss 1.203231692314148\n",
-      "Epoch 1/100. Iteration 183/3125. Loss 0.9811964631080627\n",
-      "Epoch 1/100. Iteration 184/3125. Loss 1.3848121166229248\n",
-      "Epoch 1/100. Iteration 185/3125. Loss 1.2238004207611084\n",
-      "Epoch 1/100. Iteration 186/3125. Loss 1.2253998517990112\n",
-      "Epoch 1/100. Iteration 187/3125. Loss 0.9476578831672668\n",
-      "Epoch 1/100. Iteration 188/3125. Loss 0.9328936338424683\n",
-      "Epoch 1/100. Iteration 189/3125. Loss 1.1295368671417236\n",
-      "Epoch 1/100. Iteration 190/3125. Loss 1.0754637718200684\n",
-      "Epoch 1/100. Iteration 191/3125. Loss 1.0816539525985718\n",
-      "Epoch 1/100. Iteration 192/3125. Loss 1.0983169078826904\n",
-      "Epoch 1/100. Iteration 193/3125. Loss 1.6216768026351929\n",
-      "Epoch 1/100. Iteration 194/3125. Loss 1.050721287727356\n",
-      "Epoch 1/100. Iteration 195/3125. Loss 1.7826255559921265\n",
-      "Epoch 1/100. Iteration 196/3125. Loss 1.1577094793319702\n",
-      "Epoch 1/100. Iteration 197/3125. Loss 1.5249104499816895\n",
-      "Epoch 1/100. Iteration 198/3125. Loss 1.1267268657684326\n",
-      "Epoch 1/100. Iteration 199/3125. Loss 1.122584342956543\n",
-      "Epoch 1/100. Iteration 200/3125. Loss 1.0190256834030151\n",
-      "Epoch 1/100. Iteration 201/3125. Loss 1.205178141593933\n",
-      "Epoch 1/100. Iteration 202/3125. Loss 1.2310962677001953\n",
-      "Epoch 1/100. Iteration 203/3125. Loss 0.7703967690467834\n",
-      "Epoch 1/100. Iteration 204/3125. Loss 1.2758535146713257\n",
-      "Epoch 1/100. Iteration 205/3125. Loss 0.7488816380500793\n",
-      "Epoch 1/100. Iteration 206/3125. Loss 1.312129020690918\n",
-      "Epoch 1/100. Iteration 207/3125. Loss 1.2544279098510742\n",
-      "Epoch 1/100. Iteration 208/3125. Loss 0.9895511269569397\n",
-      "Epoch 1/100. Iteration 209/3125. Loss 0.9762107729911804\n",
-      "Epoch 1/100. Iteration 210/3125. Loss 1.0384631156921387\n",
-      "Epoch 1/100. Iteration 211/3125. Loss 1.0225791931152344\n",
-      "Epoch 1/100. Iteration 212/3125. Loss 0.9446356892585754\n",
-      "Epoch 1/100. Iteration 213/3125. Loss 1.0197522640228271\n",
-      "Epoch 1/100. Iteration 214/3125. Loss 1.4167392253875732\n",
-      "Epoch 1/100. Iteration 215/3125. Loss 0.7921196222305298\n",
-      "Epoch 1/100. Iteration 216/3125. Loss 1.4206955432891846\n",
-      "Epoch 1/100. Iteration 217/3125. Loss 1.0083063840866089\n",
-      "Epoch 1/100. Iteration 218/3125. Loss 0.9949255585670471\n",
-      "Epoch 1/100. Iteration 219/3125. Loss 1.2973122596740723\n",
-      "Epoch 1/100. Iteration 220/3125. Loss 0.7010067105293274\n",
-      "Epoch 1/100. Iteration 221/3125. Loss 0.9908162355422974\n",
-      "Epoch 1/100. Iteration 222/3125. Loss 1.2506622076034546\n",
-      "Epoch 1/100. Iteration 223/3125. Loss 1.1455234289169312\n",
-      "Epoch 1/100. Iteration 224/3125. Loss 1.0803381204605103\n",
-      "Epoch 1/100. Iteration 225/3125. Loss 1.1994582414627075\n",
-      "Epoch 1/100. Iteration 226/3125. Loss 1.1252484321594238\n",
-      "Epoch 1/100. Iteration 227/3125. Loss 0.8499236106872559\n",
-      "Epoch 1/100. Iteration 228/3125. Loss 1.1965019702911377\n",
-      "Epoch 1/100. Iteration 229/3125. Loss 1.3472503423690796\n",
-      "Epoch 1/100. Iteration 230/3125. Loss 1.1378812789916992\n",
-      "Epoch 1/100. Iteration 231/3125. Loss 1.0492373704910278\n",
-      "Epoch 1/100. Iteration 232/3125. Loss 1.264715313911438\n",
-      "Epoch 1/100. Iteration 233/3125. Loss 1.4686155319213867\n",
-      "Epoch 1/100. Iteration 234/3125. Loss 1.3360306024551392\n",
-      "Epoch 1/100. Iteration 235/3125. Loss 0.8067780137062073\n",
-      "Epoch 1/100. Iteration 236/3125. Loss 0.9531237483024597\n",
-      "Epoch 1/100. Iteration 237/3125. Loss 1.1717472076416016\n",
-      "Epoch 1/100. Iteration 238/3125. Loss 1.3214194774627686\n",
-      "Epoch 1/100. Iteration 239/3125. Loss 1.4678215980529785\n",
-      "Epoch 1/100. Iteration 240/3125. Loss 1.011324167251587\n",
-      "Epoch 1/100. Iteration 241/3125. Loss 0.8736586570739746\n",
-      "Epoch 1/100. Iteration 242/3125. Loss 0.5078084468841553\n",
-      "Epoch 1/100. Iteration 243/3125. Loss 1.4860180616378784\n",
-      "Epoch 1/100. Iteration 244/3125. Loss 1.201137661933899\n",
-      "Epoch 1/100. Iteration 245/3125. Loss 1.0984269380569458\n",
-      "Epoch 1/100. Iteration 246/3125. Loss 1.1416065692901611\n",
-      "Epoch 1/100. Iteration 247/3125. Loss 1.0064680576324463\n",
-      "Epoch 1/100. Iteration 248/3125. Loss 1.194957971572876\n",
-      "Epoch 1/100. Iteration 249/3125. Loss 1.4904323816299438\n",
-      "Epoch 1/100. Iteration 250/3125. Loss 1.1924946308135986\n",
-      "Epoch 1/100. Iteration 251/3125. Loss 1.016181468963623\n",
-      "Epoch 1/100. Iteration 252/3125. Loss 1.1879158020019531\n",
-      "Epoch 1/100. Iteration 253/3125. Loss 1.0011409521102905\n",
-      "Epoch 1/100. Iteration 254/3125. Loss 1.5546766519546509\n",
-      "Epoch 1/100. Iteration 255/3125. Loss 0.8245450258255005\n",
-      "Epoch 1/100. Iteration 256/3125. Loss 1.5597097873687744\n",
-      "Epoch 1/100. Iteration 257/3125. Loss 0.5485372543334961\n",
-      "Epoch 1/100. Iteration 258/3125. Loss 1.4039905071258545\n",
-      "Epoch 1/100. Iteration 259/3125. Loss 1.1765220165252686\n",
-      "Epoch 1/100. Iteration 260/3125. Loss 1.1519250869750977\n",
-      "Epoch 1/100. Iteration 261/3125. Loss 0.8363552093505859\n",
-      "Epoch 1/100. Iteration 262/3125. Loss 1.6921559572219849\n",
-      "Epoch 1/100. Iteration 263/3125. Loss 1.8202755451202393\n",
-      "Epoch 1/100. Iteration 264/3125. Loss 1.209626317024231\n",
-      "Epoch 1/100. Iteration 265/3125. Loss 0.8637753129005432\n",
-      "Epoch 1/100. Iteration 266/3125. Loss 1.3374056816101074\n",
-      "Epoch 1/100. Iteration 267/3125. Loss 1.2656131982803345\n",
-      "Epoch 1/100. Iteration 268/3125. Loss 1.0834758281707764\n",
-      "Epoch 1/100. Iteration 269/3125. Loss 1.3476876020431519\n",
-      "Epoch 1/100. Iteration 270/3125. Loss 1.7755208015441895\n",
-      "Epoch 1/100. Iteration 271/3125. Loss 1.2550758123397827\n",
-      "Epoch 1/100. Iteration 272/3125. Loss 0.8634006977081299\n",
-      "Epoch 1/100. Iteration 273/3125. Loss 1.2925660610198975\n",
-      "Epoch 1/100. Iteration 274/3125. Loss 1.210700273513794\n",
-      "Epoch 1/100. Iteration 275/3125. Loss 1.6298770904541016\n",
-      "Epoch 1/100. Iteration 276/3125. Loss 1.3560607433319092\n",
-      "Epoch 1/100. Iteration 277/3125. Loss 0.8542596101760864\n",
-      "Epoch 1/100. Iteration 278/3125. Loss 1.8554567098617554\n",
-      "Epoch 1/100. Iteration 279/3125. Loss 1.3046326637268066\n",
-      "Epoch 1/100. Iteration 280/3125. Loss 1.0144412517547607\n",
-      "Epoch 1/100. Iteration 281/3125. Loss 1.2106953859329224\n",
-      "Epoch 1/100. Iteration 282/3125. Loss 1.352081060409546\n",
-      "Epoch 1/100. Iteration 283/3125. Loss 1.1809115409851074\n",
-      "Epoch 1/100. Iteration 284/3125. Loss 1.110687494277954\n",
-      "Epoch 1/100. Iteration 285/3125. Loss 0.9600952863693237\n",
-      "Epoch 1/100. Iteration 286/3125. Loss 1.2584933042526245\n",
-      "Epoch 1/100. Iteration 287/3125. Loss 0.9758707284927368\n",
-      "Epoch 1/100. Iteration 288/3125. Loss 1.074143409729004\n",
-      "Epoch 1/100. Iteration 289/3125. Loss 1.3517447710037231\n",
-      "Epoch 1/100. Iteration 290/3125. Loss 1.2457174062728882\n",
-      "Epoch 1/100. Iteration 291/3125. Loss 1.257574200630188\n",
-      "Epoch 1/100. Iteration 292/3125. Loss 1.2764623165130615\n",
-      "Epoch 1/100. Iteration 293/3125. Loss 1.3134081363677979\n",
-      "Epoch 1/100. Iteration 294/3125. Loss 1.3539860248565674\n",
-      "Epoch 1/100. Iteration 295/3125. Loss 1.8123772144317627\n",
-      "Epoch 1/100. Iteration 296/3125. Loss 1.2264565229415894\n",
-      "Epoch 1/100. Iteration 297/3125. Loss 1.556296467781067\n",
-      "Epoch 1/100. Iteration 298/3125. Loss 1.3817261457443237\n",
-      "Epoch 1/100. Iteration 299/3125. Loss 1.4067188501358032\n",
-      "Epoch 1/100. Iteration 300/3125. Loss 1.160486102104187\n",
-      "Epoch 1/100. Iteration 301/3125. Loss 1.2664477825164795\n",
-      "Epoch 1/100. Iteration 302/3125. Loss 0.8106479048728943\n",
-      "Epoch 1/100. Iteration 303/3125. Loss 1.325911283493042\n",
-      "Epoch 1/100. Iteration 304/3125. Loss 1.1052182912826538\n",
-      "Epoch 1/100. Iteration 305/3125. Loss 1.108525037765503\n",
-      "Epoch 1/100. Iteration 306/3125. Loss 1.4692862033843994\n",
-      "Epoch 1/100. Iteration 307/3125. Loss 1.3621338605880737\n",
-      "Epoch 1/100. Iteration 308/3125. Loss 0.9243344664573669\n",
-      "Epoch 1/100. Iteration 309/3125. Loss 1.2875901460647583\n",
-      "Epoch 1/100. Iteration 310/3125. Loss 1.1881887912750244\n",
-      "Epoch 1/100. Iteration 311/3125. Loss 1.2641795873641968\n",
-      "Epoch 1/100. Iteration 312/3125. Loss 0.8779135346412659\n",
-      "Epoch 1/100. Iteration 313/3125. Loss 1.6654787063598633\n",
-      "Epoch 1/100. Iteration 314/3125. Loss 1.213046669960022\n",
-      "Epoch 1/100. Iteration 315/3125. Loss 0.9341235756874084\n",
-      "Epoch 1/100. Iteration 316/3125. Loss 1.6108715534210205\n",
-      "Epoch 1/100. Iteration 317/3125. Loss 1.3774654865264893\n",
-      "Epoch 1/100. Iteration 318/3125. Loss 1.1098436117172241\n",
-      "Epoch 1/100. Iteration 319/3125. Loss 1.3589203357696533\n",
-      "Epoch 1/100. Iteration 320/3125. Loss 1.126841425895691\n",
-      "Epoch 1/100. Iteration 321/3125. Loss 0.7764959335327148\n",
-      "Epoch 1/100. Iteration 322/3125. Loss 1.3347147703170776\n",
-      "Epoch 1/100. Iteration 323/3125. Loss 1.1642754077911377\n",
-      "Epoch 1/100. Iteration 324/3125. Loss 1.1565570831298828\n",
-      "Epoch 1/100. Iteration 325/3125. Loss 0.9675800204277039\n",
-      "Epoch 1/100. Iteration 326/3125. Loss 1.688269853591919\n",
-      "Epoch 1/100. Iteration 327/3125. Loss 1.2038363218307495\n",
-      "Epoch 1/100. Iteration 328/3125. Loss 0.8508134484291077\n",
-      "Epoch 1/100. Iteration 329/3125. Loss 1.1901817321777344\n",
-      "Epoch 1/100. Iteration 330/3125. Loss 1.0393034219741821\n",
-      "Epoch 1/100. Iteration 331/3125. Loss 1.1444823741912842\n",
-      "Epoch 1/100. Iteration 332/3125. Loss 0.9537389278411865\n",
-      "Epoch 1/100. Iteration 333/3125. Loss 1.0501121282577515\n",
-      "Epoch 1/100. Iteration 334/3125. Loss 1.1808669567108154\n",
-      "Epoch 1/100. Iteration 335/3125. Loss 0.8825728893280029\n",
-      "Epoch 1/100. Iteration 336/3125. Loss 0.8475885987281799\n",
-      "Epoch 1/100. Iteration 337/3125. Loss 1.026402235031128\n",
-      "Epoch 1/100. Iteration 338/3125. Loss 1.108527660369873\n",
-      "Epoch 1/100. Iteration 339/3125. Loss 1.0726161003112793\n",
-      "Epoch 1/100. Iteration 340/3125. Loss 1.4693264961242676\n",
-      "Epoch 1/100. Iteration 341/3125. Loss 0.9770708680152893\n",
-      "Epoch 1/100. Iteration 342/3125. Loss 1.0819227695465088\n",
-      "Epoch 1/100. Iteration 343/3125. Loss 0.7068547606468201\n",
-      "Epoch 1/100. Iteration 344/3125. Loss 1.1723930835723877\n",
-      "Epoch 1/100. Iteration 345/3125. Loss 1.7417066097259521\n",
-      "Epoch 1/100. Iteration 346/3125. Loss 0.8495969772338867\n",
-      "Epoch 1/100. Iteration 347/3125. Loss 1.395207166671753\n",
-      "Epoch 1/100. Iteration 348/3125. Loss 0.6913655400276184\n",
-      "Epoch 1/100. Iteration 349/3125. Loss 1.2153067588806152\n",
-      "Epoch 1/100. Iteration 350/3125. Loss 1.0992668867111206\n",
-      "Epoch 1/100. Iteration 351/3125. Loss 0.7063860893249512\n",
-      "Epoch 1/100. Iteration 352/3125. Loss 0.9166061282157898\n",
-      "Epoch 1/100. Iteration 353/3125. Loss 1.6131787300109863\n",
-      "Epoch 1/100. Iteration 354/3125. Loss 1.2174886465072632\n",
-      "Epoch 1/100. Iteration 355/3125. Loss 1.6713452339172363\n",
-      "Epoch 1/100. Iteration 356/3125. Loss 1.3542225360870361\n",
-      "Epoch 1/100. Iteration 357/3125. Loss 1.2381104230880737\n",
-      "Epoch 1/100. Iteration 358/3125. Loss 1.2226439714431763\n",
-      "Epoch 1/100. Iteration 359/3125. Loss 0.7630250453948975\n",
-      "Epoch 1/100. Iteration 360/3125. Loss 1.5598398447036743\n",
-      "Epoch 1/100. Iteration 361/3125. Loss 1.0372445583343506\n",
-      "Epoch 1/100. Iteration 362/3125. Loss 0.8844842910766602\n",
-      "Epoch 1/100. Iteration 363/3125. Loss 1.6834707260131836\n",
-      "Epoch 1/100. Iteration 364/3125. Loss 1.2638529539108276\n",
-      "Epoch 1/100. Iteration 365/3125. Loss 1.3002277612686157\n",
-      "Epoch 1/100. Iteration 366/3125. Loss 0.831211268901825\n",
-      "Epoch 1/100. Iteration 367/3125. Loss 1.4086129665374756\n",
-      "Epoch 1/100. Iteration 368/3125. Loss 1.0933045148849487\n",
-      "Epoch 1/100. Iteration 369/3125. Loss 0.9896963238716125\n",
-      "Epoch 1/100. Iteration 370/3125. Loss 1.0042989253997803\n",
-      "Epoch 1/100. Iteration 371/3125. Loss 1.5361602306365967\n",
-      "Epoch 1/100. Iteration 372/3125. Loss 1.0178707838058472\n",
-      "Epoch 1/100. Iteration 373/3125. Loss 0.8647100925445557\n",
-      "Epoch 1/100. Iteration 374/3125. Loss 1.3794105052947998\n",
-      "Epoch 1/100. Iteration 375/3125. Loss 0.7584365606307983\n",
-      "Epoch 1/100. Iteration 376/3125. Loss 1.2654756307601929\n",
-      "Epoch 1/100. Iteration 377/3125. Loss 1.0782504081726074\n",
-      "Epoch 1/100. Iteration 378/3125. Loss 1.3634603023529053\n",
-      "Epoch 1/100. Iteration 379/3125. Loss 1.6670273542404175\n",
-      "Epoch 1/100. Iteration 380/3125. Loss 1.1761982440948486\n",
-      "Epoch 1/100. Iteration 381/3125. Loss 0.8457360863685608\n",
-      "Epoch 1/100. Iteration 382/3125. Loss 1.3041342496871948\n",
-      "Epoch 1/100. Iteration 383/3125. Loss 1.062366008758545\n",
-      "Epoch 1/100. Iteration 384/3125. Loss 1.5600188970565796\n",
-      "Epoch 1/100. Iteration 385/3125. Loss 1.1994786262512207\n",
-      "Epoch 1/100. Iteration 386/3125. Loss 1.311179518699646\n",
-      "Epoch 1/100. Iteration 387/3125. Loss 1.2898670434951782\n",
-      "Epoch 1/100. Iteration 388/3125. Loss 1.4234578609466553\n",
-      "Epoch 1/100. Iteration 389/3125. Loss 1.7914934158325195\n",
-      "Epoch 1/100. Iteration 390/3125. Loss 0.8184673190116882\n",
-      "Epoch 1/100. Iteration 391/3125. Loss 1.2901657819747925\n",
-      "Epoch 1/100. Iteration 392/3125. Loss 1.3023425340652466\n",
-      "Epoch 1/100. Iteration 393/3125. Loss 1.4725219011306763\n",
-      "Epoch 1/100. Iteration 394/3125. Loss 1.2814821004867554\n",
-      "Epoch 1/100. Iteration 395/3125. Loss 1.2257347106933594\n",
-      "Epoch 1/100. Iteration 396/3125. Loss 1.4524909257888794\n",
-      "Epoch 1/100. Iteration 397/3125. Loss 0.8829576969146729\n",
-      "Epoch 1/100. Iteration 398/3125. Loss 0.5729126930236816\n",
-      "Epoch 1/100. Iteration 399/3125. Loss 0.8724386692047119\n",
-      "Epoch 1/100. Iteration 400/3125. Loss 0.6839998364448547\n",
-      "Epoch 1/100. Iteration 401/3125. Loss 1.2248623371124268\n",
-      "Epoch 1/100. Iteration 402/3125. Loss 1.0654631853103638\n",
-      "Epoch 1/100. Iteration 403/3125. Loss 1.4939273595809937\n",
-      "Epoch 1/100. Iteration 404/3125. Loss 0.8251822590827942\n",
-      "Epoch 1/100. Iteration 405/3125. Loss 1.5754387378692627\n",
-      "Epoch 1/100. Iteration 406/3125. Loss 1.3577284812927246\n",
-      "Epoch 1/100. Iteration 407/3125. Loss 0.7914731502532959\n",
-      "Epoch 1/100. Iteration 408/3125. Loss 1.1636217832565308\n",
-      "Epoch 1/100. Iteration 409/3125. Loss 0.8285112380981445\n",
-      "Epoch 1/100. Iteration 410/3125. Loss 0.9629377126693726\n",
-      "Epoch 1/100. Iteration 411/3125. Loss 1.7895363569259644\n",
-      "Epoch 1/100. Iteration 412/3125. Loss 1.1177161931991577\n",
-      "Epoch 1/100. Iteration 413/3125. Loss 1.2534486055374146\n",
-      "Epoch 1/100. Iteration 414/3125. Loss 1.1141479015350342\n",
-      "Epoch 1/100. Iteration 415/3125. Loss 0.6774538159370422\n",
-      "Epoch 1/100. Iteration 416/3125. Loss 1.0991532802581787\n",
-      "Epoch 1/100. Iteration 417/3125. Loss 1.225265383720398\n"
-     ]
-    },
-    {
-     "ename": "KeyboardInterrupt",
-     "evalue": "",
-     "output_type": "error",
-     "traceback": [
-      "\u001b[1;31m---------------------------------------------------------------------------\u001b[0m",
-      "\u001b[1;31mKeyboardInterrupt\u001b[0m                         Traceback (most recent call last)",
-      "\u001b[1;32m<ipython-input-31-9851e32fc52b>\u001b[0m in \u001b[0;36m<module>\u001b[1;34m\u001b[0m\n\u001b[0;32m     12\u001b[0m         \u001b[1;31m#backword\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m     13\u001b[0m         \u001b[0moptimizer\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mzero_grad\u001b[0m\u001b[1;33m(\u001b[0m\u001b[1;33m)\u001b[0m \u001b[1;31m#ko luu dao ham gradien\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m---> 14\u001b[1;33m         \u001b[0mloss_value\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mbackward\u001b[0m\u001b[1;33m(\u001b[0m\u001b[1;33m)\u001b[0m \u001b[1;31m#tinh gradien cua ham loss\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m     15\u001b[0m         \u001b[0moptimizer\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mstep\u001b[0m\u001b[1;33m(\u001b[0m\u001b[1;33m)\u001b[0m \u001b[1;31m#cap nhat tham so\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m     16\u001b[0m \u001b[1;33m\u001b[0m\u001b[0m\n",
-      "\u001b[1;32mD:\\Anaconda\\envs\\py36\\lib\\site-packages\\torch\\_tensor.py\u001b[0m in \u001b[0;36mbackward\u001b[1;34m(self, gradient, retain_graph, create_graph, inputs)\u001b[0m\n\u001b[0;32m    305\u001b[0m                 \u001b[0mcreate_graph\u001b[0m\u001b[1;33m=\u001b[0m\u001b[0mcreate_graph\u001b[0m\u001b[1;33m,\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    306\u001b[0m                 inputs=inputs)\n\u001b[1;32m--> 307\u001b[1;33m         \u001b[0mtorch\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mautograd\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mbackward\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mself\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mgradient\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mretain_graph\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mcreate_graph\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0minputs\u001b[0m\u001b[1;33m=\u001b[0m\u001b[0minputs\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m    308\u001b[0m \u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    309\u001b[0m     \u001b[1;32mdef\u001b[0m \u001b[0mregister_hook\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mself\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mhook\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n",
-      "\u001b[1;32mD:\\Anaconda\\envs\\py36\\lib\\site-packages\\torch\\autograd\\__init__.py\u001b[0m in \u001b[0;36mbackward\u001b[1;34m(tensors, grad_tensors, retain_graph, create_graph, grad_variables, inputs)\u001b[0m\n\u001b[0;32m    154\u001b[0m     Variable._execution_engine.run_backward(\n\u001b[0;32m    155\u001b[0m         \u001b[0mtensors\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mgrad_tensors_\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mretain_graph\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mcreate_graph\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0minputs\u001b[0m\u001b[1;33m,\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 156\u001b[1;33m         allow_unreachable=True, accumulate_grad=True)  # allow_unreachable flag\n\u001b[0m\u001b[0;32m    157\u001b[0m \u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    158\u001b[0m \u001b[1;33m\u001b[0m\u001b[0m\n",
-      "\u001b[1;31mKeyboardInterrupt\u001b[0m: "
-     ]
-    }
-   ],
-   "source": [
-    "num_epochs = 100\n",
-    "num_iters = len(train_dataloader)\n",
-    "\n",
-    "for epoch in range(num_epochs):\n",
-    "    model.train() #model dang trong qua trinh train\n",
-    "    for iter, (images, labels) in enumerate(train_dataloader):\n",
-    "        #forward\n",
-    "        outputs = model(images)\n",
-    "        loss_value = criterion(outputs, labels)\n",
-    "        print(\"Epoch {}/{}. Iteration {}/{}. Loss {}\".format(epoch + 1, num_epochs, iter + 1, num_iters, loss_value))\n",
-    "        \n",
-    "        #backword\n",
-    "        optimizer.zero_grad() #ko luu dao ham gradien\n",
-    "        loss_value.backward() #tinh gradien cua ham loss\n",
-    "        optimizer.step() #cap nhat tham so\n",
-    "\n",
-    "\n",
-    "    model.eval() #test\n",
-    "    all_predictions= []op\n",
-    "    all_labels = []\n",
-    "    for iter, (images, labels) in enumerate(test_dataloader):\n",
-    "        all_labels.extend(labels)\n",
-    "        with torch.no_grad(): #tat ca lenh trong nay se ko dc tinh gradien\n",
-    "            predictions = model(images)\n",
-    "            indices= torch.argmax(predictions, dim = 1)\n",
-    "            all_predictions.extend(indices)\n",
-    "            loss_value = criterion(outputs, labels)\n",
-    "\n",
-    "    all_labels = [label.item() for label in all_labels]\n",
-    "    all_predictions = [prediction.item() for prediction in all_predictions]\n",
-    "    correct = sum([pred == label for pred, label in zip(all_predictions, all_labels)])\n",
-    "    total = len(all_labels)\n",
-    "    accuracy = correct / total\n",
-    "\n",
-    "    print(\"Epoch {}: Accuracy on test set = {:.2f}%\".format(epoch + 1, accuracy * 100))"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "5c67090e-1c5f-4074-b4de-715e0f961d9f",
-   "metadata": {},
-   "outputs": [],
-   "source": []
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python (PyTorch)",
-   "language": "python",
-   "name": "py36"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.6.13"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
-}
+from torchvision.datasets import CIFAR10
+from torch.utils.data import DataLoader
+from torchvision import transforms
+
+
+import torch
+import torch.nn as nn
+class simpleNN(nn.Module):
+    def __init__(self, num_class = 10): #dinh nghia cac layer can dung
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.fc1 = nn.Sequential(
+            nn.Linear(in_features=3*32*32, out_features= 256),
+            nn.ReLU()
+        )
+
+        self.fc2 = nn.Sequential(
+            nn.Linear(in_features=256, out_features= 512),
+            nn.ReLU()
+        )
+        self.fc3 = nn.Sequential(
+            nn.Linear(in_features=512, out_features= 1024),
+            nn.ReLU()
+        )
+        self.fc4 = nn.Sequential(
+            nn.Linear(in_features=1024, out_features= 512),
+            nn.ReLU()
+        )
+        self.fc5= nn.Sequential(
+            nn.Linear(in_features=512, out_features = num_class),
+            nn.ReLU()
+        )
+
+    def forward(self, x): #cach thuc du lieu di qua nhu nao
+        x = self.flatten(x)
+        x = self.fc1(x)
+        x = self.fc2(x)
+        x = self.fc3(x)
+        x = self.fc4(x)
+        x = self.fc5(x)
+        return x
+
+
+class CNN(nn.Module):
+ def __init__(self, num_class=10):  # dinh nghia cac layer can dung
+  super().__init__()
+  self.conv1 = self.make_block(in_channels=3, out_channels=8)
+  self.conv2 = self.make_block(in_channels=8, out_channels=16)
+  self.conv3 = self.make_block(in_channels=16, out_channels=32)
+  self.conv4 = self.make_block(in_channels=32, out_channels=64)
+  self.conv5 = self.make_block(in_channels=64, out_channels=128)
+  # self.flatten = nn.Flatten()
+
+  self.fc1 = nn.Sequential(
+   nn.Dropout(p=0.5),
+   nn.Linear(in_features=6272, out_features=512),
+   nn.LeakyReLU()
+  )
+
+  self.fc2 = nn.Sequential(
+   nn.Dropout(p=0.5),
+   nn.Linear(in_features=512, out_features=1024),
+   nn.LeakyReLU()
+  )
+
+  self.fc3 = nn.Sequential(
+   nn.Dropout(p=0.5),
+   nn.Linear(in_features=1024, out_features=num_class),
+  )
+
+ def make_block(self, in_channels, out_channels):
+  return nn.Sequential(
+   nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=1, padding='same'),
+   nn.BatchNorm2d(num_features=out_channels),
+   nn.LeakyReLU(),
+   nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, padding='same'),
+   nn.BatchNorm2d(num_features=out_channels),
+   nn.LeakyReLU(),
+   nn.MaxPool2d(kernel_size=2)
+  )
+
+ def forward(self, x):  # cach thuc du lieu di qua nhu nao
+  x = self.conv1(x)
+  x = self.conv2(x)
+  x = self.conv3(x)
+  x = self.conv4(x)
+  x = self.conv5(x)
+  x = x.view(x.shape[0], -1)  # flatten
+  x = self.fc1(x)
+  x = self.fc2(x)
+  x = self.fc3(x)
+  return x
+
+transform = transforms.Compose([
+    transforms.ToTensor(),  # chuyển ảnh từ PIL sang tensor
+])
+
+train_dataset = CIFAR10(root = './', train = True, transform = transform)
+train_dataloader = DataLoader(
+    dataset = train_dataset,
+    batch_size = 16,
+    num_workers = 3,
+    shuffle = True,
+    drop_last = True,
+)
+
+test_dataset = CIFAR10(root = './', train = False,transform = transform)
+test_dataloader = DataLoader(
+    dataset = test_dataset,
+    batch_size = 16,
+    num_workers = 3,
+    shuffle = False,
+    drop_last = True,
+)
+
+model = CNN()
+input_data = torch.rand(8,3,224,224)
+result = model(input_data)
+result.shape
+
+criterion = nn.CrossEntropyLoss() #dinh nghia ham loss
+optimizer = torch.optim.SGD(model.parameters(), lr = 0.001, momentum=0.9)
+
+num_epochs = 100
+num_iters = len(train_dataloader)
+
+for epoch in range(num_epochs):
+ model.train()  # model dang trong qua trinh train
+ for iter, (images, labels) in enumerate(train_dataloader):
+  # forward
+  outputs = model(images)
+  loss_value = criterion(outputs, labels)
+  print("Epoch {}/{}. Iteration {}/{}. Loss {}".format(epoch + 1, num_epochs, iter + 1, num_iters, loss_value))
+
+  # backword
+  optimizer.zero_grad()  # ko luu dao ham gradien
+  loss_value.backward()  # tinh gradien cua ham loss
+  optimizer.step()  # cap nhat tham so
+
+ model.eval()  # test
+ all_predictions = []
+ op
+ all_labels = []
+ for iter, (images, labels) in enumerate(test_dataloader):
+  all_labels.extend(labels)
+  with torch.no_grad():  # tat ca lenh trong nay se ko dc tinh gradien
+   predictions = model(images)
+   indices = torch.argmax(predictions, dim=1)
+   all_predictions.extend(indices)
+   loss_value = criterion(outputs, labels)
+
+ all_labels = [label.item() for label in all_labels]
+ all_predictions = [prediction.item() for prediction in all_predictions]
+ correct = sum([pred == label for pred, label in zip(all_predictions, all_labels)])
+ total = len(all_labels)
+ accuracy = correct / total
+
+ print("Epoch {}: Accuracy on test set = {:.2f}%".format(epoch + 1, accuracy * 100))
